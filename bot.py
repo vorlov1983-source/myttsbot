@@ -16,12 +16,15 @@ if not TELEGRAM_TOKEN or not GOOGLE_API_KEY:
 # Прямое подключение без прокси (для региона Варшава)
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-# ----- ДОСТУПНЫЕ ГОЛОСА -----
+# ----- ВСЕ ДОСТУПНЫЕ ОФИЦИАЛЬНЫЕ ГОЛОСА GEMINI -----
 VOICES = {
-    "👩 Женский (Kore)": "Kore",
-    "👨 Мужской (Puck)": "Puck",
+    "👩 Женский базовый (Kore)": "Kore",
+    "👩 Женский звонкий (Aoede)": "Aoede",
+    "👩 Женский деловой (Phobos)": "Phobos",
+    "👨 Мужской базовый (Puck)": "Puck",
+    "👨 Мужской низкий (Charon)": "Charon",
+    "👨 Мужской густой (Fenrir)": "Fenrir",
 }
-user_voice = {}
 
 @bot.message_handler(commands=['start'])
 def start(message):
