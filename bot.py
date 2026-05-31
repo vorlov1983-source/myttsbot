@@ -1,18 +1,17 @@
-import os
+iimport os
 import tempfile
 import telebot
-from telebot import apihelper
 from google import genai
 from google.genai import types
 
-# ----- ПРОКСИ AMVERA (обязательно) -----
-apihelper.proxy = {'https': 'http://proxy.amvera:8080', 'http': 'http://proxy.amvera:8080'}
+# ----- ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ (задаются в Amvera) -----
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
-# ----- ТВОИ КЛЮЧИ -----
-TELEGRAM_TOKEN = "8968007410:AAGVB0lla-38NsNsOmdA1WAsS86YMwkUZas"
-GOOGLE_API_KEY = "sk-ILvVrppDc74nfpO5-fGesA"
+if not TELEGRAM_TOKEN or not GOOGLE_API_KEY:
+    raise ValueError("Не заданы переменные TELEGRAM_TOKEN и GOOGLE_API_KEY")
 
-# ----- GEMINI -----
+# ----- GEMINI (через Artemox) -----
 client = genai.Client(
     api_key=GOOGLE_API_KEY,
     http_options=types.HttpOptions(base_url='https://api.artemox.com')
@@ -71,7 +70,7 @@ def text_to_speech(message):
         os.remove(tmp_path)
     except Exception as e:
         print(f"❌ Ошибка TTS: {e}")
-        bot.reply_to(message, "Не удалось озвучить текст. Попробуйте другой голос.")
+        bot.reply_to(message, "Не удалось озвучить текст.")
 
 if __name__ == "__main__":
     print("✅ Бот запущен (модель gemini-2.5-flash-preview-tts)")
