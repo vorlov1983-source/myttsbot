@@ -1,51 +1,41 @@
 import os
 import tempfile
 import telebot
-import torch
+import requests
 
 # ----- ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ -----
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY") # Сюда передается ваш ключ AQ.Ab8...
 
-if not TELEGRAM_TOKEN:
-    raise ValueError("❌ Не задана переменная TELEGRAM_TOKEN в панели Amvera")
+if not TELEGRAM_TOKEN or not GOOGLE_API_KEY:
+    raise ValueError("❌ Не заданы переменные TELEGRAM_TOKEN или GOOGLE_API_KEY")
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-# ----- ИНИЦИАЛИЗАЦИЯ ЛОКАЛЬНОГО SILERO TTS -----
-device = torch.device('cpu')
-local_model_path = 'model.pt'
-
-# Если модели еще нет в папке, бот сам скачает её один раз (около 50 МБ)
-if not os.path.exists(local_model_path):
-    print("⏳ Загрузка качественной модели Silero TTS...")
-    torch.hub.download_url_to_file('https://silero.ai', local_model_path)
-
-# Загружаем модель в память
-model = torch.package.PackageImporter(local_model_path).load_pickle('tts_models', 'model')
-model.to(device)
-
-# Отличные русские голоса, которые встроены в модель
+# Голоса, доступные в OpenAI-совместимом формате TTS
 VOICES = {
-    "👩 Женский (Ксения)": "kseniya",
-    "👩 Женский (Байкал)": "baya",
-    "👨 Мужской (Айрат)": "aidar",
+    "👩 Женский базовый (Alloy)": "alloy",
+    "👩 Женский нежный (Nova)": "nova",
+    "👩 Женский звонкий (Shimmer)": "shimmer",
+    "👨 Мужской базовый (Echo)": "echo",
+    "👨 Мужской глубокий (Onyx)": "onyx",
+    "👨 Мужской спокойный (Fable)": "fable",
 }
 user_voice = {}
-SAMPLE_RATE = 48000  # Студийное качество звука
 
 @bot.message_handler(commands=['start'])
 def start(message):
     markup = telebot.types.InlineKeyboardMarkup()
     for name, code in VOICES.items():
         markup.add(telebot.types.InlineKeyboardButton(name, callback_data=code))
-    bot.send_message(message.chat.id, "🎤 Выберите голос для озвучки русского текста:", reply_markup=markup)
+    bot.send_message(message.chat.id, "🎤 Выберите голос для озвучки текста:", reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: call.data in VOICES.values())
 def set_voice(call):
     user_voice[call.from_user.id] = call.data
     voice_name = [n for n, c in VOICES.items() if c == call.data][0]
     bot.answer_callback_query(call.id, f"✅ Выбран: {voice_name}")
-    bot.send_message(call.message.chat.id, f"✅ Установлен голос: {voice_name}\nТеперь отправьте текст для озвучки.")
+    bot.send_message(call.message.chat.id, f"✅ Голос установлен: {voice_name}\nТеперь отправьте текст.")
 
 @bot.message_handler(func=lambda message: True)
 def text_to_speech(message):
@@ -54,24 +44,39 @@ def text_to_speech(message):
         return
     
     bot.send_chat_action(message.chat.id, 'record_audio')
-    speaker = user_voice.get(message.from_user.id, "kseniya")
+    voice = user_voice.get(message.from_user.id, "alloy")
+    
+    # Официальный шлюз Google, работающий по OpenAI стандарту звука
+    url = "https://googleapis.com"
+    headers = {
+        "Authorization": f"Bearer {GOOGLE_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": "tts-1",
+        "input": text,
+        "voice": voice
+    }
     
     try:
-        # Генерируем аудио прямо на процессоре Amvera без внешних API
-        audio_path = model.save_wav(text=text, speaker=speaker, sample_rate=SAMPLE_RATE)
+        response = requests.post(url, json=payload, headers=headers, stream=True)
         
-        # Отправляем готовый сгенерированный файл пользователю
-        with open(audio_path, 'rb') as audio:
+        if response.status_code != 200:
+            raise Exception(f"Код {response.status_code}: {response.text}")
+            
+        with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
+            tmp.write(response.content)
+            tmp_path = tmp.name
+            
+        with open(tmp_path, 'rb') as audio:
             bot.send_voice(message.chat.id, audio, reply_to_message_id=message.message_id)
             
-        # Удаляем временный файл, чтобы не забивать диск хостинга
-        if os.path.exists(audio_path):
-            os.remove(audio_path)
-            
+        os.remove(tmp_path)
+        
     except Exception as e:
-        print(f"❌ Ошибка Silero TTS: {e}")
-        bot.reply_to(message, "Не удалось озвучить текст. Попробуйте написать что-то покороче.")
+        print(f"❌ Ошибка TTS: {e}")
+        bot.reply_to(message, "Не удалось озвучить текст. Попробуйте позже.")
 
 if __name__ == "__main__":
-    print("✅ Автономный бот Silero TTS успешно запущен!")
+    print("✅ Легковесный бот успешно запущен...")
     bot.infinity_polling()
