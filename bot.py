@@ -9,7 +9,6 @@ from google.genai import types
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
-# ----- ПРОВЕРКА -----
 if not TELEGRAM_TOKEN or not GOOGLE_API_KEY:
     raise ValueError("❌ Не заданы переменные TELEGRAM_TOKEN или GOOGLE_API_KEY")
 
@@ -22,10 +21,9 @@ client = genai.Client(
     http_options=types.HttpOptions(base_url='https://api.artemox.com')
 )
 
-# ----- ТЕЛЕГРАМ БОТ -----
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-# ----- ГОЛОСА И ОБРАБОТЧИКИ (ваш код без изменений) -----
+# ----- ГОЛОСА -----
 VOICES = {
     "👩 Женский (Kore)": "Kore",
     "👨 Мужской (Puck)": "Puck",
