@@ -1,2 +1,2 @@
-pyTelegramBotAPI[socks]
+pyTelegramBotAPI
 google-genai
