@@ -4,16 +4,19 @@ import telebot
 import requests
 import base64
 
-# ----- ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ -----
+# ----- ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ (ЗАДАЮТСЯ В ПАНЕЛИ AMVERA) -----
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
+# ----- ПРОВЕРКА НАЛИЧИЯ КЛЮЧЕЙ -----
 if not TELEGRAM_TOKEN or not GOOGLE_API_KEY:
     raise ValueError("❌ Не заданы переменные TELEGRAM_TOKEN или GOOGLE_API_KEY в панели Amvera")
 
+# ----- ИНИЦИАЛИЗАЦИЯ ТЕЛЕГРАМ БОТА -----
 # Прямое подключение без прокси (для региона Варшава)
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
+# ----- ДОСТУПНЫЕ ГОЛОСА -----
 VOICES = {
     "👩 Женский (Kore)": "Kore",
     "👨 Мужской (Puck)": "Puck",
@@ -43,14 +46,18 @@ def text_to_speech(message):
     bot.send_chat_action(message.chat.id, 'record_audio')
     voice = user_voice.get(message.from_user.id, "Kore")
     
-    # URL для генерации контента через шлюз Artemox
-    url = "https://artemox.com"
+    # Официальный эндпоинт Google для TTS
+    url = "https://googleapis.com"
+    
     headers = {
-        "Authorization": f"Bearer {GOOGLE_API_KEY}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "X-goog-api-key": GOOGLE_API_KEY
     }
+    
     payload = {
-        "contents": [{"parts": [{"text": text}]}],
+        "contents": [{
+            "parts": [{"text": text}]
+        }],
         "generationConfig": {
             "responseModalities": ["AUDIO"],
             "speechConfig": {
@@ -65,18 +72,12 @@ def text_to_speech(message):
         response = requests.post(url, json=payload, headers=headers)
         response_data = response.json()
         
-        # Защищенный разбор структуры ответа
-        if 'candidates' in response_data:
-            # Официальный формат Gemini API
-            candidates = response_data['candidates']
-            content = candidates[0]['content'] if isinstance(candidates, list) else candidates['content']
-            audio_base64 = content['parts'][0]['inlineData']['data']
-        elif 'choices' in response_data:
-            # Если шлюз маскирует ответ под OpenAI формат
-            audio_base64 = response_data['choices'][0]['message']['content']
-        else:
-            raise KeyError(f"Неизвестная структура ответа. Получено: {response_data}")
-
+        if response.status_code != 200:
+            raise Exception(f"Код {response.status_code}: {response.text}")
+            
+        # --- ТОЧНЫЙ ОФИЦИАЛЬНЫЙ РАЗБОР ОТВЕТА С ИНДЕКСАМИ ---
+        # candidates и parts — это списки, поэтому берем первый элемент [0]
+        audio_base64 = response_data['candidates'][0]['content']['parts'][0]['inlineData']['data']
         audio_data = base64.b64decode(audio_base64)
         
         with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
@@ -89,11 +90,11 @@ def text_to_speech(message):
         os.remove(tmp_path)
         
     except Exception as e:
-        print(f"❌ Ошибка TTS через Artemox: {e}")
+        print(f"❌ Ошибка генерации звука: {e}")
         if 'response' in locals() and response:
-            print(f"Полный ответ сервера для отладки: {response.text}")
-        bot.reply_to(message, "Не удалось озвучить текст. Попробуйте другой голос.")
+            print(f"Ответ от Google: {response.text}")
+        bot.reply_to(message, "Не удалось озвучить текст. Попробуйте позже.")
 
 if __name__ == "__main__":
-    print("✅ Бот успешно запущен и слушает новые сообщения...")
+    print("✅ Бот запущен через прямой HTTP-интерфейс...")
     bot.infinity_polling()
