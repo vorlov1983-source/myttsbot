@@ -4,20 +4,22 @@ import telebot
 from google import genai
 from google.genai import types
 
-# ----- ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ (ЗАДАЮТСЯ В ПАНЕЛИ AMVERA) -----
+# ----- ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ (ЗАДАЮТСЯ В AMVERA) -----
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
-if not TELEGRAM_TOKEN or not GOOGLE_API_KEY:
-    raise ValueError("❌ Не заданы переменные TELEGRAM_TOKEN или GOOGLE_API_KEY")
+if not TELEGRAM_TOKEN:
+    raise ValueError("TELEGRAM_TOKEN не задан в переменных")
+if not GOOGLE_API_KEY:
+    raise ValueError("GOOGLE_API_KEY не задан в переменных")
 
-# ----- GEMINI (через Artemox) -----
+# ----- GEMINI CLIENT (ARTEMOX) -----
 client = genai.Client(
     api_key=GOOGLE_API_KEY,
-    http_options=types.HttpOptions(base_url='https://api.artemox.com')
+    http_options=types.HttpOptions(base_url='https://api.artemox.com/v1')
 )
 
-# ----- ТЕЛЕГРАМ БОТ (прямое подключение) -----
+# ----- TELEGRAM BOT -----
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
 # ----- ГОЛОСА -----
