@@ -1,4 +1,2 @@
 pyTelegramBotAPI
-torch==2.0.1
-soundfile
-omegaconf
+requests
