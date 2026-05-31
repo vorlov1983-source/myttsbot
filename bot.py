@@ -13,7 +13,7 @@ if not TELEGRAM_TOKEN or not GOOGLE_API_KEY:
     raise ValueError("❌ Не заданы переменные TELEGRAM_TOKEN или GOOGLE_API_KEY")
 
 # ----- ПОДМЕНЯЕМ АДРЕС API TELEGRAM НА ПРОКСИ-ШЛЮЗ -----
-apihelper.API_URL = "https://telegram-api-proxy-anonymous.pages.dev/bot"
+apihelper.API_URL = "https://telegram-api-proxy-anonymous.pages.dev/api/bot"
 
 # ----- GEMINI -----
 client = genai.Client(
