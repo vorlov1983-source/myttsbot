@@ -4,25 +4,25 @@ import telebot
 from google import genai
 from google.genai import types
 
-# ----- ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ (ЗАДАЮТСЯ В AMVERA) -----
+# ----- ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ (ЗАДАЮТСЯ В ПАНЕЛИ AMVERA) -----
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
-if not TELEGRAM_TOKEN:
-    raise ValueError("TELEGRAM_TOKEN не задан в переменных")
-if not GOOGLE_API_KEY:
-    raise ValueError("GOOGLE_API_KEY не задан в переменных")
+# ----- ПРОВЕРКА НАЛИЧИЯ КЛЮЧЕЙ -----
+if not TELEGRAM_TOKEN or not GOOGLE_API_KEY:
+    raise ValueError("❌ Не заданы переменные TELEGRAM_TOKEN или GOOGLE_API_KEY в панели Amvera")
 
-# ----- GEMINI CLIENT (ARTEMOX) -----
-client = genai.Client(
-    api_key=GOOGLE_API_KEY,
-    http_options=types.HttpOptions(base_url='https://api.artemox.com/v1')
-)
-
-# ----- TELEGRAM BOT -----
+# ----- ИНИЦИАЛИЗАЦИЯ ТЕЛЕГРАМ БОТА -----
+# Работает напрямую, так как сервер Amvera находится в Варшаве
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-# ----- ГОЛОСА -----
+# ----- ИНИЦИАЛИЗАЦИЯ GEMINI -----
+client = genai.Client(
+    api_key=GOOGLE_API_KEY,
+    http_options=types.HttpOptions(base_url='https://artemox.com')
+)
+
+# ----- ДОСТУПНЫЕ ГОЛОСА -----
 VOICES = {
     "👩 Женский (Kore)": "Kore",
     "👨 Мужской (Puck)": "Puck",
@@ -76,5 +76,5 @@ def text_to_speech(message):
         bot.reply_to(message, "Не удалось озвучить текст. Попробуйте другой голос.")
 
 if __name__ == "__main__":
-    print("✅ Бот запущен")
+    print("✅ Бот успешно запущен и ожидает сообщений...")
     bot.infinity_polling()
