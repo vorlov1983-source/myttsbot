@@ -1,7 +1,6 @@
 import os
 import tempfile
 import telebot
-from telebot import apihelper
 from google import genai
 from google.genai import types
 
@@ -12,15 +11,13 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 if not TELEGRAM_TOKEN or not GOOGLE_API_KEY:
     raise ValueError("❌ Не заданы переменные TELEGRAM_TOKEN или GOOGLE_API_KEY")
 
-# ----- ПОДМЕНЯЕМ АДРЕС API TELEGRAM НА ПРОКСИ-ШЛЮЗ -----
-apihelper.API_URL = "https://telegram-api-proxy-anonymous.pages.dev/api/bot"
-
-# ----- GEMINI -----
+# ----- GEMINI (через Artemox) -----
 client = genai.Client(
     api_key=GOOGLE_API_KEY,
     http_options=types.HttpOptions(base_url='https://api.artemox.com')
 )
 
+# ----- ТЕЛЕГРАМ БОТ (прямое подключение) -----
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
 # ----- ГОЛОСА -----
